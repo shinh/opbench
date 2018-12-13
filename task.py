@@ -9,7 +9,7 @@ import utils
 
 
 class Task(object):
-    def __init__(self, model):
+    def __init__(self, model, py_filename):
         """Initializes the task object.
 
         Args:
@@ -18,11 +18,13 @@ class Task(object):
             name: A str of the task name.
             inputs: A np.array or a tuple of np.array objects to be
               fed to `forward` function.
+          py_filename: A str object.
         """
         assert isinstance(model, chainer.Chain), model
         assert hasattr(model, 'inputs')
         self.name = model.name
         self.model = model
+        self.py_filename = py_filename
         self.onnx_dir = None
 
     def run(self):
@@ -43,10 +45,14 @@ class Task(object):
         if not os.path.exists(self.onnx_dir):
             os.makedirs(self.onnx_dir)
 
-        # TODO(hamaji): Cache ONNX model files.
+        onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
+        if (os.path.exists(onnx_filename) and
+            (os.stat(onnx_filename).st_mtime >=
+             os.stat(self.py_filename).st_mtime)):
+            return self.onnx_dir
 
         onnx_chainer.export(self.model, self.inputs,
-                            filename='%s/model.onnx' % self.onnx_dir,
+                            filename=onnx_filename,
                             graph_name=self.name)
         return self.onnx_dir
 
@@ -66,5 +72,5 @@ def collect_all_tasks():
     for task_py in task_pys:
         module = import_file(task_py)
         for task in module.get_tasks():
-            tasks.append(Task(task))
+            tasks.append(Task(task, task_py))
     return tasks
