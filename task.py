@@ -5,6 +5,8 @@ import os
 import chainer
 import onnx_chainer
 
+import utils
+
 
 class Task(object):
     def __init__(self, model):
@@ -26,14 +28,11 @@ class Task(object):
     def run(self):
         chainer.config.train = False
         self.model.to_gpu()
-        inputs = self.model.inputs()
-        if not isinstance(inputs, tuple):
-            inputs = [inputs]
-        gpu_inputs = [self.model.xp.array(input) for input in inputs]
+        inputs = utils.as_list(self.model.inputs())
+        gpu_inputs = utils.to_gpu(inputs)
         gpu_outputs = self.model(*gpu_inputs)
-        if not isinstance(gpu_outputs, tuple):
-            gpu_outputs = [gpu_outputs]
-        outputs = [chainer.cuda.to_cpu(v.array) for v in gpu_outputs]
+        gpu_outputs = utils.as_list(gpu_outputs)
+        outputs = utils.to_cpu(gpu_outputs)
         self.inputs = inputs
         return inputs, outputs
 

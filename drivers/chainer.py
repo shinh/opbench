@@ -1,16 +1,16 @@
 import chainer
 
 import driver
+import utils
 
 
 class ChainerDriver(driver.Driver):
     def run_first(self, task, inputs):
         task.model.to_gpu()
-        self.inputs = [task.model.xp.array(input) for input in inputs]
+        self.inputs = utils.to_gpu(inputs)
         gpu_outputs = self.run_task(task)
-        if not isinstance(gpu_outputs, tuple):
-            gpu_outputs = [gpu_outputs]
-        outputs = [chainer.cuda.to_cpu(v.array) for v in gpu_outputs]
+        gpu_outputs = utils.as_list(gpu_outputs)
+        outputs = utils.to_cpu(gpu_outputs)
         return outputs
 
     def run_task(self, task):
