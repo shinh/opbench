@@ -7,11 +7,6 @@ import chainer
 import utils
 
 
-def _makedirs(dirname):
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
-
 class Task(object):
     def __init__(self, model, py_filename):
         """Initializes the task object.
@@ -35,7 +30,7 @@ class Task(object):
         self.onnx_dir = None
 
     def run(self):
-        _makedirs(self.model_dir)
+        utils.makedirs(self.model_dir)
         param_filename = os.path.join(self.model_dir, 'params.npz')
         params_loaded = self.is_up_to_date(param_filename)
         if params_loaded:
@@ -70,7 +65,7 @@ class Task(object):
             return self.onnx_dir
         self.onnx_dir = self.model_dir
         data_dir = os.path.join(self.onnx_dir, 'test_data_set_0')
-        _makedirs(data_dir)
+        utils.makedirs(data_dir)
 
         onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
         if self.is_up_to_date(onnx_filename):

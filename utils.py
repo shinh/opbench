@@ -1,3 +1,5 @@
+import os
+
 import chainer
 import cupy
 
@@ -20,3 +22,8 @@ def to_cpu(arrays):
             a = a.array
         out.append(chainer.cuda.to_cpu(a))
     return out
+
+
+def makedirs(dirname):
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
