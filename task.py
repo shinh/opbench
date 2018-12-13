@@ -101,7 +101,9 @@ class Task(object):
             if input.name in used_values:
                 new_inputs.append(input)
         if len(onnx_model.graph.input) != len(new_inputs):
-            onnx_model.graph.input[:] = new_inputs
+            while onnx_model.graph.input:
+                onnx_model.graph.input.pop()
+            onnx_model.graph.input.extend(new_inputs)
             with open(onnx_filename + '.tmp', 'wb') as f:
                 f.write(onnx_model.SerializeToString())
 
