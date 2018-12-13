@@ -5,7 +5,9 @@ import driver
 
 class ChainerDriver(driver.Driver):
     def run_task(self, task):
-        return task.model(*self.inputs)
+        outputs = task.model(*self.inputs)
+        chainer.cuda.Stream.null.synchronize()
+        return outputs
 
     def get_result(self, task, inputs):
         task.model.to_gpu()
@@ -14,7 +16,6 @@ class ChainerDriver(driver.Driver):
         if not isinstance(gpu_outputs, tuple):
             gpu_outputs = [gpu_outputs]
         outputs = [chainer.cuda.to_cpu(v.array) for v in gpu_outputs]
-        chainer.cuda.Stream.null.synchronize()
         return outputs
 
 
