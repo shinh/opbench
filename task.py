@@ -25,9 +25,12 @@ class Task(object):
         inputs = self.model.inputs()
         if not isinstance(inputs, tuple):
             inputs = [inputs]
-        inputs = [self.model.xp.array(input) for input in inputs]
-        outputs = self.model(*inputs)
-        return outputs
+        gpu_inputs = [self.model.xp.array(input) for input in inputs]
+        gpu_outputs = self.model(*gpu_inputs)
+        if not isinstance(gpu_outputs, tuple):
+            gpu_outputs = [gpu_outputs]
+        outputs = [chainer.cuda.to_cpu(v.array) for v in gpu_outputs]
+        return inputs, outputs
 
 
 def import_file(filename):

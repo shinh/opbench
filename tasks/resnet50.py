@@ -91,6 +91,7 @@ class Conv(chainer.Chain):
                                         nobias=True)
         self.name = '%s_conv_%d' % (name, index)
         self.layer = layer
+        self.flops = layer.flops
 
     def forward(self, x):
         return self.conv(x)

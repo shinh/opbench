@@ -1,6 +1,7 @@
 import time
 
 import chainer
+import numpy as np
 
 
 class Driver(object):
@@ -8,10 +9,9 @@ class Driver(object):
         pass
 
     def bench(self, task, time_budget_sec=1.0, max_count=100):
-        self.prepare_task(task)
-        expected_outputs = chainer.cuda.to_cpu(task.run())
-        actual_outputs = self.get_result(task)
-        assert np.allclose(expected_outputs, actual_outputs, rtol=1e-2)
+        inputs, expected_outputs = task.run()
+        actual_outputs = self.get_result(task, inputs)
+        np.testing.assert_allclose(expected_outputs, actual_outputs, rtol=1e-2)
 
         times = []
         start_time = time.time()

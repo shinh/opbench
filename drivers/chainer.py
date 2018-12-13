@@ -4,15 +4,19 @@ import driver
 
 
 class ChainerDriver(driver.Driver):
-    def prepare_task(self, task):
-        task.model.to_gpu()
-        inputs = self.model.inputs()
-        if not isinstance(inputs, tuple):
-            inputs = [inputs]
-        self.inputs = [self.model.xp.array(input) for input in inputs]
-
     def run_task(self, task):
-        return task.model(*inputs)
+        return task.model(*self.inputs)
 
-    def get_result(self, task):
-        return chainer.cuda.to_cpu(self.run_task(task))
+    def get_result(self, task, inputs):
+        task.model.to_gpu()
+        self.inputs = [task.model.xp.array(input) for input in inputs]
+        gpu_outputs = self.run_task(task)
+        if not isinstance(gpu_outputs, tuple):
+            gpu_outputs = [gpu_outputs]
+        outputs = [chainer.cuda.to_cpu(v.array) for v in gpu_outputs]
+        chainer.cuda.Stream.null.synchronize()
+        return outputs
+
+
+def get_driver():
+    return ChainerDriver()
