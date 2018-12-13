@@ -3,7 +3,6 @@ import importlib
 import os
 
 import chainer
-import onnx_chainer
 
 import utils
 
@@ -36,14 +35,19 @@ class Task(object):
         gpu_outputs = utils.as_list(gpu_outputs)
         outputs = utils.to_cpu(gpu_outputs)
         self.inputs = inputs
+        self.outputs = outputs
         return inputs, outputs
 
     def get_onnx_dir(self):
+        import onnx
+        import onnx_chainer
+
         if self.onnx_dir is not None:
             return self.onnx_dir
         self.onnx_dir = os.path.join('out/onnx', self.name)
-        if not os.path.exists(self.onnx_dir):
-            os.makedirs(self.onnx_dir)
+        data_dir = os.path.join(self.onnx_dir, 'test_data_set_0')
+        if not os.path.exists(data_dir):
+            os.makedirs(data_dir)
 
         onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
         if (os.path.exists(onnx_filename) and
@@ -51,9 +55,34 @@ class Task(object):
              os.stat(self.py_filename).st_mtime)):
             return self.onnx_dir
 
-        onnx_chainer.export(self.model, self.inputs,
-                            filename=onnx_filename,
+        onnx_chainer.export(self.model, list(self.inputs),
+                            filename=onnx_filename + '.tmp',
                             graph_name=self.name)
+
+        onnx_model = onnx.load(onnx_filename + '.tmp')
+        initializer_names = set(i.name for i in onnx_model.graph.initializer)
+        input_names = []
+        for input in onnx_model.graph.input:
+            if input.name not in initializer_names:
+                input_names.append(input.name)
+        output_names = []
+        for output in onnx_model.graph.output:
+            output_names.append(output.name)
+
+        assert len(input_names) == len(self.inputs)
+        assert len(output_names) == len(self.outputs)
+        for typ, names, values in [('input', input_names, self.inputs),
+                                   ('output', output_names, self.outputs)]:
+            for i, (name, value) in enumerate(zip(names, values)):
+                dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
+                tensor = onnx.helper.make_tensor(
+                    name, dtype, value.shape, value.ravel())
+                pb_name = '%s_%d.pb' % (typ, i)
+                with open(os.path.join(data_dir, pb_name), 'wb') as f:
+                    f.write(tensor.SerializeToString())
+
+        # Commit.
+        os.rename(onnx_filename + '.tmp', onnx_filename)
         return self.onnx_dir
 
     def get_onnx_file(self):
