@@ -5,7 +5,7 @@ import utils
 
 
 class ChainerDriver(driver.Driver):
-    def run_first(self, task, inputs):
+    def run_first(self, task, inputs, sample_outputs):
         task.model.to_gpu()
         self.inputs = utils.to_gpu(inputs)
         gpu_outputs = self.run_task(task)

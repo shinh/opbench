@@ -3,12 +3,16 @@ import time
 import chainer
 import numpy as np
 
+import utils
+
 
 class Driver(object):
     def bench(self, task, time_budget_sec=1.0, max_count=100):
         inputs, expected_outputs = task.run()
-        actual_outputs = self.run_first(task, inputs)
-        np.testing.assert_allclose(expected_outputs, actual_outputs, rtol=1e-2)
+        actual_outputs = self.run_first(task, inputs, expected_outputs)
+        for i, (e, a) in enumerate(zip(expected_outputs, actual_outputs)):
+            np.testing.assert_allclose(e, a, rtol=1e-2,
+                                       err_msg='output index: %d' % i)
 
         times = []
         start_time = time.time()
