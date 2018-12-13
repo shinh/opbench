@@ -8,6 +8,7 @@ import utils
 
 class TensorRTDriver(driver.Driver):
     def run_first(self, task, inputs, sample_outputs):
+        self.batch_size = inputs[0].shape[0]
         onnx_filename = task.get_onnx_file()
         with open(onnx_filename, 'rb') as f:
             onnx_proto = f.read()
@@ -15,13 +16,14 @@ class TensorRTDriver(driver.Driver):
         logger = tensorrt.Logger()
         # logger = tensorrt.Logger(tensorrt.Logger.Severity.INFO)
         builder = tensorrt.Builder(logger)
+        builder.max_batch_size = self.batch_size
         network = builder.create_network()
         parser = tensorrt.OnnxParser(network, logger)
         parser.parse(onnx_proto)
         engine = builder.build_cuda_engine(network)
         self.context = engine.create_execution_context()
-        self.batch_size = inputs[0].shape[0]
 
+        assert len(inputs) + len(sample_outputs) == engine.num_bindings
         for i, input in enumerate(inputs):
             assert self.batch_size == input.shape[0]
             assert input.shape[1:] == engine.get_binding_shape(i)
@@ -40,7 +42,8 @@ class TensorRTDriver(driver.Driver):
     def run_task(self, task):
         bindings = [a.data.ptr for a in self.inputs]
         bindings += [a.data.ptr for a in self.outputs]
-        self.context.execute(self.batch_size, bindings)
+        result = self.context.execute(self.batch_size, bindings)
+        assert result
         chainer.cuda.Stream.null.synchronize()
 
 
