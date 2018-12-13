@@ -20,6 +20,8 @@ class Task(object):
           model: A `chainer.Chain` with additional required attributes:
             category: A str of the category of the task.
             name: A str of the task name.
+            info: A list of pairs of (key, value) where key is a str
+              and value is anything.
             inputs: A np.array or a tuple of np.array objects to be
               fed to `forward` function.
           py_filename: A str object.

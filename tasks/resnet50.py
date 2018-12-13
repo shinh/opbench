@@ -5,7 +5,7 @@ import numpy as np
 
 
 class Layer(object):
-    def __init__(self, bsize, ichan, ochan, wh, ksize, stride, pad, after):
+    def __init__(self, bsize, ichan, ochan, wh, ksize, stride, pad, postprocs):
         self.bsize = bsize
         self.ichan = ichan
         self.ochan = ochan
@@ -13,7 +13,7 @@ class Layer(object):
         self.ksize = ksize
         self.stride = stride
         self.pad = pad
-        self.after = after
+        self.postprocs = postprocs
         owh = (wh + pad * 2 - ksize + stride) / stride
         self.flops = bsize * ichan * ochan * owh * owh * ksize * ksize
 
@@ -91,7 +91,7 @@ class Conv(chainer.Chain):
                                         layer.stride,
                                         layer.pad,
                                         nobias=True)
-        self.category = '%s_bs%d_conv' % (name, bsize)
+        self.category = '%s_conv_bs%d' % (name, bsize)
         self.name = '%s_%d' % (self.category, index)
         self.layer = layer
         self.flops = layer.flops
@@ -105,6 +105,18 @@ class Conv(chainer.Chain):
         wh = self.layer.wh
         return np.random.normal(size=(bsize, ichan, wh, wh)).astype(np.float32)
 
+    def info(self):
+        l = self.layer
+        return [
+            ('flops', l.flops),
+            ('bsize', l.bsize),
+            ('ichan', l.ichan),
+            ('ochan', l.ochan),
+            ('wh', l.wh),
+            ('ksize', l.ksize),
+            ('stride', l.stride),
+            ('pad', l.pad),
+        ]
 
 class ConvFuse(chainer.Chain):
     def __init__(self, name, bsize, index, layer):
@@ -116,11 +128,11 @@ class ConvFuse(chainer.Chain):
                                         layer.stride,
                                         layer.pad,
                                         nobias=True)
-            if BatchNorm in layer.after:
+            if BatchNorm in layer.postprocs:
                 self.bn = L.BatchNormalization(layer.ochan)
 
         postprocs = []
-        for pp in layer.after:
+        for pp in layer.postprocs:
             if pp == MaxPool or pp == AvgPool:
                 continue
             postprocs.append({
@@ -128,14 +140,14 @@ class ConvFuse(chainer.Chain):
                 Relu: 'relu',
             }[pp])
 
-        self.category = '%s_%s_bs%d_conv' % (name, '_'.join(postprocs), bsize)
+        self.category = '%s_convfuse_bs%d' % (name, bsize)
         self.name = '%s_%d' % (self.category, index)
         self.layer = layer
         self.flops = layer.flops
 
     def forward(self, x):
         y = self.conv(x)
-        for pp in self.layer.after:
+        for pp in self.layer.postprocs:
             if pp == MaxPool or pp == AvgPool:
                 continue
             y = {
@@ -149,6 +161,23 @@ class ConvFuse(chainer.Chain):
         ichan = self.layer.ichan
         wh = self.layer.wh
         return np.random.normal(size=(bsize, ichan, wh, wh)).astype(np.float32)
+
+    def info(self):
+        l = self.layer
+        bn = int(BatchNorm in l.postprocs)
+        relu = int(Relu in l.postprocs)
+        return [
+            ('flops', l.flops),
+            ('bsize', l.bsize),
+            ('ichan', l.ichan),
+            ('ochan', l.ochan),
+            ('wh', l.wh),
+            ('ksize', l.ksize),
+            ('stride', l.stride),
+            ('pad', l.pad),
+            ('bn', bn),
+            ('relu', relu),
+        ]
 
 
 def get_tasks():
