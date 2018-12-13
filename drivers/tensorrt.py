@@ -20,11 +20,15 @@ class TensorRTDriver(driver.Driver):
         parser.parse(onnx_proto)
         engine = builder.build_cuda_engine(network)
         self.context = engine.create_execution_context()
+        self.batch_size = inputs[0].shape[0]
 
-        # for i in range(3):
-        #     print(engine.get_binding_name(i))
-        #     print(engine.get_binding_dtype(i))
-        #     print(engine.get_binding_shape(i))
+        for i, input in enumerate(inputs):
+            assert self.batch_size == input.shape[0]
+            assert input.shape[1:] == engine.get_binding_shape(i)
+        for i, output in enumerate(sample_outputs):
+            assert self.batch_size == output.shape[0]
+            i += len(inputs)
+            assert output.shape[1:] == engine.get_binding_shape(i)
 
         self.inputs = utils.to_gpu(inputs)
         self.outputs = []
@@ -36,7 +40,7 @@ class TensorRTDriver(driver.Driver):
     def run_task(self, task):
         bindings = [a.data.ptr for a in self.inputs]
         bindings += [a.data.ptr for a in self.outputs]
-        self.context.execute(self.inputs[0].shape[0], bindings)
+        self.context.execute(self.batch_size, bindings)
         chainer.cuda.Stream.null.synchronize()
 
 
