@@ -1,4 +1,5 @@
 import chainer
+import chainer.functions as F
 import chainer.links as L
 import numpy as np
 
@@ -81,7 +82,7 @@ def resnet50_layers(bsize):
 
 
 class Conv(chainer.Chain):
-    def __init__(self, name, index, layer):
+    def __init__(self, name, bsize, index, layer):
         super(Conv, self).__init__()
         with self.init_scope():
             self.conv = L.Convolution2D(layer.ichan,
@@ -90,7 +91,7 @@ class Conv(chainer.Chain):
                                         layer.stride,
                                         layer.pad,
                                         nobias=True)
-        self.category = '%s_conv' % name
+        self.category = '%s_bs%d_conv' % (name, bsize)
         self.name = '%s_%d' % (self.category, index)
         self.layer = layer
         self.flops = layer.flops
@@ -105,9 +106,55 @@ class Conv(chainer.Chain):
         return np.random.normal(size=(bsize, ichan, wh, wh)).astype(np.float32)
 
 
+class ConvFuse(chainer.Chain):
+    def __init__(self, name, bsize, index, layer):
+        super(ConvFuse, self).__init__()
+        with self.init_scope():
+            self.conv = L.Convolution2D(layer.ichan,
+                                        layer.ochan,
+                                        layer.ksize,
+                                        layer.stride,
+                                        layer.pad,
+                                        nobias=True)
+            if BatchNorm in layer.after:
+                self.bn = L.BatchNormalization(layer.ochan)
+
+        postprocs = []
+        for pp in layer.after:
+            if pp == MaxPool or pp == AvgPool:
+                continue
+            postprocs.append({
+                BatchNorm: 'bn',
+                Relu: 'relu',
+            }[pp])
+
+        self.category = '%s_%s_bs%d_conv' % (name, '_'.join(postprocs), bsize)
+        self.name = '%s_%d' % (self.category, index)
+        self.layer = layer
+        self.flops = layer.flops
+
+    def forward(self, x):
+        y = self.conv(x)
+        for pp in self.layer.after:
+            if pp == MaxPool or pp == AvgPool:
+                continue
+            y = {
+                BatchNorm: self.bn,
+                Relu: F.relu,
+            }[pp](y)
+        return y
+
+    def inputs(self):
+        bsize = self.layer.bsize
+        ichan = self.layer.ichan
+        wh = self.layer.wh
+        return np.random.normal(size=(bsize, ichan, wh, wh)).astype(np.float32)
+
+
 def get_tasks():
     tasks = []
     for bsize in [1, 32]:
         for i, layer in enumerate(resnet50_layers(bsize)):
-            tasks.append(Conv('resnet50_bs%d' % bsize, i, layer))
+            tasks.append(Conv('resnet50', bsize, i, layer))
+            tasks.append(ConvFuse('resnet50', bsize, i, layer))
     return tasks
