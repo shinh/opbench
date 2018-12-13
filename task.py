@@ -7,6 +7,11 @@ import chainer
 import utils
 
 
+def _makedirs(dirname):
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+
 class Task(object):
     def __init__(self, model, py_filename):
         """Initializes the task object.
@@ -24,9 +29,16 @@ class Task(object):
         self.name = model.name
         self.model = model
         self.py_filename = py_filename
+        self.model_dir = os.path.join('out/models', self.name)
         self.onnx_dir = None
 
     def run(self):
+        _makedirs(self.model_dir)
+        param_filename = os.path.join(self.model_dir, 'params.npz')
+        params_loaded = self.is_up_to_date(param_filename)
+        if params_loaded:
+            chainer.serializers.load_npz(param_filename, self.model)
+
         chainer.config.train = False
         self.model.to_gpu()
         inputs = utils.as_list(self.model.inputs())
@@ -36,7 +48,17 @@ class Task(object):
         outputs = utils.to_cpu(gpu_outputs)
         self.inputs = inputs
         self.outputs = outputs
+
+        if not params_loaded:
+            chainer.serializers.save_npz(param_filename, self.model)
+
         return inputs, outputs
+
+    def is_up_to_date(self, filename):
+        if not os.path.exists(filename):
+            return False
+        return (os.stat(filename).st_mtime >=
+                os.stat(self.py_filename).st_mtime)
 
     def get_onnx_dir(self):
         import onnx
@@ -44,15 +66,12 @@ class Task(object):
 
         if self.onnx_dir is not None:
             return self.onnx_dir
-        self.onnx_dir = os.path.join('out/onnx', self.name)
+        self.onnx_dir = self.model_dir
         data_dir = os.path.join(self.onnx_dir, 'test_data_set_0')
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
+        _makedirs(data_dir)
 
         onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
-        if (os.path.exists(onnx_filename) and
-            (os.stat(onnx_filename).st_mtime >=
-             os.stat(self.py_filename).st_mtime)):
+        if self.is_up_to_date(onnx_filename):
             return self.onnx_dir
 
         onnx_chainer.export(self.model, list(self.inputs),
