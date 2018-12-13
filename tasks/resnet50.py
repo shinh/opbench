@@ -90,7 +90,8 @@ class Conv(chainer.Chain):
                                         layer.stride,
                                         layer.pad,
                                         nobias=True)
-        self.name = '%s_conv_%d' % (name, index)
+        self.category = '%s_conv' % name
+        self.name = '%s_%d' % (self.category, index)
         self.layer = layer
         self.flops = layer.flops
 
