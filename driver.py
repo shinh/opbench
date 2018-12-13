@@ -11,7 +11,7 @@ class Driver(object):
         inputs, expected_outputs = task.run()
         actual_outputs = self.run_first(task, inputs, expected_outputs)
         for i, (e, a) in enumerate(zip(expected_outputs, actual_outputs)):
-            np.testing.assert_allclose(e, a, rtol=1e-2,
+            np.testing.assert_allclose(e, a, rtol=1e-2, atol=1e-4,
                                        err_msg='output index: %d' % i)
 
         times = []
