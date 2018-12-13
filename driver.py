@@ -21,6 +21,7 @@ class Driver(object):
             if now - start_time >= time_budget_sec:
                 break
             self.run_task(task)
+        times.append(time.time())
 
         result = []
         for i in range(len(times) - 1):

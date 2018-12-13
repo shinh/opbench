@@ -35,7 +35,7 @@ def main():
         result = driver.bench(task, time_budget_sec=args.time_per_task)
         elapsed = sum(result) / len(result)
         flops = task.model.flops / elapsed / 1000 / 1000 / 1000
-        print(task.name, '%.1f GFLOPS/sec' % flops)
+        print(task.name, '%.1f GFLOPS/sec' % flops, 'cnt=%d' % len(result))
 
 
 if __name__ == '__main__':
