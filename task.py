@@ -88,15 +88,25 @@ class Task(object):
         onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
         onnx_model = onnx.load(onnx_filename + '.tmp')
         initializer_names = set(i.name for i in onnx_model.graph.initializer)
-        used_inputs = set()
+
+        # Strip unused input values.
+        # TODO(hamaji): Figure out why ONNX chainer emits unnecessary inputs.
+        used_values = set()
         for node in onnx_model.graph.node:
             for i in node.input:
-                used_inputs.add(i)
+                used_values.add(i)
+        new_inputs = []
+        for input in onnx_model.graph.input:
+            if input.name in used_values:
+                new_inputs.append(input)
+        if len(onnx_model.graph.input) != len(new_inputs):
+            onnx_model.graph.input[:] = new_inputs
+            with open(onnx_filename + '.tmp', 'wb') as f:
+                f.write(onnx_model.SerializeToString())
 
         input_names = []
         for input in onnx_model.graph.input:
-            if (input.name not in initializer_names and
-                input.name in used_inputs):
+            if input.name not in initializer_names:
                 input_names.append(input.name)
         output_names = []
         for output in onnx_model.graph.output:
