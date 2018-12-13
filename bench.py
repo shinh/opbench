@@ -44,6 +44,7 @@ def main():
         elapsed = sum(result) / len(result)
         flops = task.model.flops / elapsed / 1000 / 1000 / 1000
         print(task.name, '%.1f GFLOPS/sec' % flops, 'cnt=%d' % len(result))
+        task.finish()
 
 
 if __name__ == '__main__':

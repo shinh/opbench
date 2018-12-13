@@ -107,6 +107,12 @@ class Task(object):
     def get_onnx_file(self):
         return os.path.join(self.get_onnx_dir(), 'model.onnx')
 
+    def finish(self):
+        """Releases memory."""
+        del self.model
+        del self.inputs
+        del self.outputs
+
 
 def import_file(filename):
     module_name = filename[:-3].replace('/', '.')
