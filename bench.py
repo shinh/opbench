@@ -1,6 +1,7 @@
 import argparse
 import glob
 import importlib
+import re
 
 import task as task_lib
 
@@ -25,13 +26,20 @@ def load_driver(driver_name):
 def main():
     parser = argparse.ArgumentParser(description='Run benchmark for ops')
     parser.add_argument('driver_name', choices=collect_all_driver_names())
+    parser.add_argument('--filter', '-f', type=str)
     parser.add_argument('--time_per_task', '-t', default=1.0)
     args = parser.parse_args()
 
     driver = load_driver(args.driver_name)
 
+    filter = None
+    if args.filter:
+        filter = re.compile(args.filter)
+
     tasks = task_lib.collect_all_tasks()
     for task in tasks:
+        if filter and not filter.search(task.name):
+            continue
         result = driver.bench(task, time_budget_sec=args.time_per_task)
         elapsed = sum(result) / len(result)
         flops = task.model.flops / elapsed / 1000 / 1000 / 1000
