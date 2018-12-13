@@ -23,6 +23,7 @@ class Task(object):
         """
         assert isinstance(model, chainer.Chain), model
         assert hasattr(model, 'inputs')
+        self.category = model.category
         self.name = model.name
         self.model = model
         self.py_filename = py_filename

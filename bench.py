@@ -1,9 +1,12 @@
 import argparse
 import glob
 import importlib
+import json
+import os
 import re
 
 import task as task_lib
+import utils
 
 
 def collect_all_driver_names():
@@ -21,6 +24,26 @@ def load_driver(driver_name):
         module_name = '%s.drivers.%s' % (toks[0], toks[1])
     module = importlib.import_module(module_name)
     return module.get_driver()
+
+
+def report(driver, task, result):
+    count = len(result)
+    elapsed = sum(result) / count
+    gflops = task.model.flops / elapsed / 1000 / 1000 / 1000
+    print(task.name, '%.1f GFLOPS/sec' % gflops, 'cnt=%d' % count)
+
+    dirname = os.path.join('results', driver.name())
+    utils.makedirs(dirname)
+    info = [
+        ('category', task.category),
+        ('name', task.name),
+        ('gflops', gflops),
+        ('elapsed', elapsed),
+        ('count', count),
+    ]
+    info.extend(task.model.info())
+    with open(os.path.join(dirname, task.name + '.json'), 'w') as f:
+        json.dump(info, f, indent=2)
 
 
 def main():
@@ -41,9 +64,7 @@ def main():
         if filter and not filter.search(task.name):
             continue
         result = driver.bench(task, time_budget_sec=args.time_per_task)
-        elapsed = sum(result) / len(result)
-        flops = task.model.flops / elapsed / 1000 / 1000 / 1000
-        print(task.name, '%.1f GFLOPS/sec' % flops, 'cnt=%d' % len(result))
+        report(driver, task, result)
         task.finish()
 
 

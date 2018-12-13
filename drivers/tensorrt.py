@@ -7,6 +7,9 @@ import utils
 
 
 class TensorRTDriver(driver.Driver):
+    def name(self):
+        return 'tensorrt'
+
     def run_first(self, task, inputs, sample_outputs):
         self.batch_size = inputs[0].shape[0]
         onnx_filename = task.get_onnx_file()

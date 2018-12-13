@@ -29,6 +29,11 @@ class Driver(object):
             result.append(times[i + 1] - times[i])
         return result
 
+    def name(self):
+        """Returns the name of the driver."""
+        raise NotImplementedError(
+            '`name` must be overridden for %s' % type(self))
+
     def run_first(self, task, inputs):
         """Runs the model first time.
 
@@ -44,7 +49,7 @@ class Driver(object):
           A list of np.array objects.
         """
         raise NotImplementedError(
-            '`get_result` must be overridden for %s' % type(self))
+            '`run_first` must be overridden for %s' % type(self))
 
     def run_task(self, task):
         """Runs the task once.
