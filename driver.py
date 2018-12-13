@@ -8,7 +8,7 @@ import utils
 
 class Driver(object):
     def bench(self, task, time_budget_sec=1.0, max_count=100):
-        inputs, expected_outputs = task.run()
+        inputs, expected_outputs = task.run(need_onnx=self.need_onnx())
         actual_outputs = self.run_first(task, inputs, expected_outputs)
         for i, (e, a) in enumerate(zip(expected_outputs, actual_outputs)):
             np.testing.assert_allclose(e, a, rtol=1e-2, atol=1e-4,
@@ -57,3 +57,7 @@ class Driver(object):
         """
         raise NotImplementedError(
             '`run_task` must be overridden for %s' % type(self))
+
+    def need_onnx(self):
+        """Returns True if this driver requires an ONNX model."""
+        return False

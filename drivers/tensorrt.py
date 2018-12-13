@@ -46,6 +46,9 @@ class TensorRTDriver(driver.Driver):
         assert result
         chainer.cuda.Stream.null.synchronize()
 
+    def need_onnx(self):
+        return True
+
 
 def get_driver():
     return TensorRTDriver()

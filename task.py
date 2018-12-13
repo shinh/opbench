@@ -29,7 +29,7 @@ class Task(object):
         self.model_dir = os.path.join('out/models', self.name)
         self.onnx_dir = None
 
-    def run(self):
+    def run(self, need_onnx=False):
         utils.makedirs(self.model_dir)
         param_filename = os.path.join(self.model_dir, 'params.npz')
         params_loaded = self.is_up_to_date(param_filename)
@@ -37,14 +37,20 @@ class Task(object):
             chainer.serializers.load_npz(param_filename, self.model)
 
         chainer.config.train = False
-        self.model.to_gpu()
         inputs = utils.as_list(self.model.inputs())
+        if need_onnx:
+            need_onnx = self.gen_onnx_model(inputs)
+
+        self.model.to_gpu()
         gpu_inputs = utils.to_gpu(inputs)
         gpu_outputs = self.model(*gpu_inputs)
         gpu_outputs = utils.as_list(gpu_outputs)
         outputs = utils.to_cpu(gpu_outputs)
         self.inputs = inputs
         self.outputs = outputs
+
+        if need_onnx:
+            self.gen_onnx_test(inputs, outputs)
 
         if not params_loaded:
             chainer.serializers.save_npz(param_filename, self.model)
@@ -57,38 +63,49 @@ class Task(object):
         return (os.stat(filename).st_mtime >=
                 os.stat(self.py_filename).st_mtime)
 
-    def get_onnx_dir(self):
-        import onnx
+    def gen_onnx_model(self, inputs):
         import onnx_chainer
 
-        if self.onnx_dir is not None:
-            return self.onnx_dir
         self.onnx_dir = self.model_dir
         data_dir = os.path.join(self.onnx_dir, 'test_data_set_0')
         utils.makedirs(data_dir)
 
         onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
         if self.is_up_to_date(onnx_filename):
-            return self.onnx_dir
+            return False
 
-        onnx_chainer.export(self.model, list(self.inputs),
+        onnx_chainer.export(self.model, list(inputs),
                             filename=onnx_filename + '.tmp',
                             graph_name=self.name)
+        return True
 
+    def gen_onnx_test(self, inputs, outputs):
+        import onnx
+
+        data_dir = os.path.join(self.onnx_dir, 'test_data_set_0')
+        utils.makedirs(data_dir)
+
+        onnx_filename = os.path.join(self.onnx_dir, 'model.onnx')
         onnx_model = onnx.load(onnx_filename + '.tmp')
         initializer_names = set(i.name for i in onnx_model.graph.initializer)
+        used_inputs = set()
+        for node in onnx_model.graph.node:
+            for i in node.input:
+                used_inputs.add(i)
+
         input_names = []
         for input in onnx_model.graph.input:
-            if input.name not in initializer_names:
+            if (input.name not in initializer_names and
+                input.name in used_inputs):
                 input_names.append(input.name)
         output_names = []
         for output in onnx_model.graph.output:
             output_names.append(output.name)
 
-        assert len(input_names) == len(self.inputs)
-        assert len(output_names) == len(self.outputs)
-        for typ, names, values in [('input', input_names, self.inputs),
-                                   ('output', output_names, self.outputs)]:
+        assert len(input_names) == len(inputs), input_names
+        assert len(output_names) == len(outputs), output_names
+        for typ, names, values in [('input', input_names, inputs),
+                                   ('output', output_names, outputs)]:
             for i, (name, value) in enumerate(zip(names, values)):
                 dtype = onnx.mapping.NP_TYPE_TO_TENSOR_TYPE[value.dtype]
                 tensor = onnx.helper.make_tensor(
@@ -99,16 +116,13 @@ class Task(object):
 
         # Commit.
         os.rename(onnx_filename + '.tmp', onnx_filename)
-        return self.onnx_dir
 
     def get_onnx_file(self):
-        return os.path.join(self.get_onnx_dir(), 'model.onnx')
+        return os.path.join(self.onnx_dir, 'model.onnx')
 
     def finish(self):
         """Releases memory."""
         del self.model
-        del self.inputs
-        del self.outputs
 
 
 def import_file(filename):
