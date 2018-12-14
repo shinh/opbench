@@ -39,10 +39,10 @@ class TensorRTDriver(driver.Driver):
         self.outputs = []
         for output in sample_outputs:
             self.outputs.append(cupy.zeros_like(output))
-        self.run_task(task)
+        self.run_task()
         return utils.to_cpu(self.outputs)
 
-    def run_task(self, task):
+    def run_task(self):
         bindings = [a.data.ptr for a in self.inputs]
         bindings += [a.data.ptr for a in self.outputs]
         result = self.context.execute(self.batch_size, bindings)

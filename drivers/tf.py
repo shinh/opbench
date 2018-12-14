@@ -17,7 +17,7 @@ class TFDriver(driver.Driver):
         outputs = self.run_task(task)
         return outputs
 
-    def run_task(self, task):
+    def run_task(self):
         outputs = self.session.run(*self.inputs)
         return outputs
 

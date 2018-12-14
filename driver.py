@@ -21,7 +21,7 @@ class Driver(object):
             times.append(now)
             if now - start_time >= time_budget_sec:
                 break
-            self.run_task(task)
+            self.run_task()
         times.append(time.time())
 
         result = []
@@ -51,14 +51,11 @@ class Driver(object):
         raise NotImplementedError(
             '`run_first` must be overridden for %s' % type(self))
 
-    def run_task(self, task):
+    def run_task(self):
         """Runs the task once.
 
-        The inputs passed to `run_first` in previous run should be
-        used as the input of the model.
-
-        Args:
-          task: A `Task` object.
+        The parameters passed to `run_first` in previous run should be
+        used until the next `run_first` call.
         """
         raise NotImplementedError(
             '`run_task` must be overridden for %s' % type(self))

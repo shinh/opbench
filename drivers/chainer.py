@@ -9,15 +9,16 @@ class ChainerDriver(driver.Driver):
         return 'chainer'
 
     def run_first(self, task, inputs, sample_outputs):
-        task.model.to_gpu()
+        self.model = task.model
+        self.model.to_gpu()
         self.inputs = utils.to_gpu(inputs)
-        gpu_outputs = self.run_task(task)
+        gpu_outputs = self.run_task()
         gpu_outputs = utils.as_list(gpu_outputs)
         outputs = utils.to_cpu(gpu_outputs)
         return outputs
 
-    def run_task(self, task):
-        outputs = task.model(*self.inputs)
+    def run_task(self):
+        outputs = self.model(*self.inputs)
         chainer.cuda.Stream.null.synchronize()
         return outputs
 
