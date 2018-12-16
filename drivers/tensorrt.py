@@ -47,7 +47,6 @@ class TensorRTDriver(driver.Driver):
         bindings += [a.data.ptr for a in self.outputs]
         result = self.context.execute(self.batch_size, bindings)
         assert result
-        chainer.cuda.Stream.null.synchronize()
 
     def need_onnx(self):
         return True

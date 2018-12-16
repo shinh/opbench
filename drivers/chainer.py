@@ -19,7 +19,6 @@ class ChainerDriver(driver.Driver):
 
     def run_task(self):
         outputs = self.model(*self.inputs)
-        chainer.cuda.Stream.null.synchronize()
         return outputs
 
 

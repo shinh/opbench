@@ -1,6 +1,7 @@
 import time
 
 import chainer
+import cupy
 import numpy as np
 
 import utils
@@ -22,6 +23,7 @@ class Driver(object):
             if now - start_time >= time_budget_sec:
                 break
             self.run_task()
+        cupy.cuda.device.Device().synchronize()
         times.append(time.time())
 
         result = []

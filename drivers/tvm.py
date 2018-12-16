@@ -63,7 +63,6 @@ class TVMDriver(driver.Driver):
         outputs = []
         for i, output in enumerate(self.tvm_outputs):
             outputs.append(self.graph_module.get_output(i, output))
-        chainer.cuda.Stream.null.synchronize()
         return outputs
 
     def need_onnx(self):
