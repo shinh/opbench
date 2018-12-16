@@ -59,13 +59,13 @@ def main():
     if args.filter:
         filter = re.compile(args.filter)
 
-    tasks = task_lib.collect_all_tasks()
-    for task in tasks:
+    tasks = list(reversed(task_lib.collect_all_tasks()))
+    while tasks:
+        task = tasks.pop()
         if filter and not filter.search(task.name):
             continue
         result = driver.bench(task, time_budget_sec=args.time_per_task)
         report(driver, task, result)
-        task.finish()
 
 
 if __name__ == '__main__':
