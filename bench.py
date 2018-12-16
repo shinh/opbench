@@ -50,7 +50,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run benchmark for ops')
     parser.add_argument('driver_name', choices=collect_all_driver_names())
     parser.add_argument('--filter', '-f', type=str)
-    parser.add_argument('--time_per_task', '-t', default=1.0)
+    parser.add_argument('--time_per_task', '-t', type=float, default=1.0)
     args = parser.parse_args()
 
     driver = load_driver(args.driver_name)
