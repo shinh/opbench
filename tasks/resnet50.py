@@ -92,7 +92,7 @@ class Conv(chainer.Chain):
                                         layer.pad,
                                         nobias=True)
         self.category = '%s_conv_bs%d' % (name, bsize)
-        self.name = '%s_%d' % (self.category, index)
+        self.name = '%s_%02d' % (self.category, index)
         self.layer = layer
         self.flops = layer.flops
 
