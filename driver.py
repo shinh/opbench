@@ -8,7 +8,7 @@ import utils
 
 
 class Driver(object):
-    def bench(self, task, time_budget_sec=1.0, max_count=100):
+    def bench(self, task, time_budget_sec=1.0, max_count=600):
         inputs, expected_outputs = task.run(need_onnx=self.need_onnx())
         actual_outputs = self.run_first(task, inputs, expected_outputs)
         for i, (e, a) in enumerate(zip(expected_outputs, actual_outputs)):
