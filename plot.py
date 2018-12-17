@@ -4,6 +4,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run benchmark for ops')
     parser.add_argument('drivers', type=str)
     parser.add_argument('--dir', type=str, default='results')
-    parser.add_argument('-x', type=str, default='flops')
+    parser.add_argument('-x', type=str, default='index')
     parser.add_argument('-y', type=str, default='gflops')
     args = parser.parse_args()
 
@@ -25,7 +26,11 @@ def main():
             with open(js) as f:
                 info = dict(json.load(f))
 
+            m = re.search(r'(\d+).json$', js)
+            assert m
+            index = int(m.group(1))
             info['driver'] = driver
+            info['index'] = index
             category = info['category']
             if category not in by_category:
                 by_category[category] = []
