@@ -46,24 +46,21 @@ class TVMDriver(driver.Driver):
                 output.shape, output.dtype, ctx=ctx))
         graph_module = graph_runtime.create(graph, lib, ctx)
 
-        self.input_names = input_names
-        self.params = {k: tvm.nd.array(v, ctx=ctx) for k, v in params.items()}
-        self.tvm_inputs = tvm_inputs
-        self.tvm_outputs = tvm_outputs
-        self.graph_module = graph_module
+        inputs = dict(zip(input_names, tvm_inputs))
+        params = {k: tvm.nd.array(v, ctx=ctx) for k, v in params.items()}
+        inputs.update(params)
+        graph_module.set_input(**inputs)
 
-        tvm_outputs = self.run_task()
-        outputs = [o.asnumpy() for o in tvm_outputs]
+        self.graph_module = graph_module
+        self.run_task()
+
+        outputs = []
+        for i, output in enumerate(tvm_outputs):
+            outputs.append(self.graph_module.get_output(i, output).asnumpy())
         return outputs
 
     def run_task(self):
-        inputs = dict(zip(self.input_names, self.tvm_inputs))
-        inputs.update(self.params)
-        self.graph_module.run(**inputs)
-        outputs = []
-        for i, output in enumerate(self.tvm_outputs):
-            outputs.append(self.graph_module.get_output(i, output))
-        return outputs
+        self.graph_module.run()
 
     def need_onnx(self):
         return True
