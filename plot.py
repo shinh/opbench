@@ -47,6 +47,8 @@ def main():
                 y.append(info[args.y])
             plt.scatter(x, y, label=driver)
         plt.legend(loc='upper left')
+        plt.xlabel(args.x)
+        plt.ylabel(args.y)
         plt.title(category)
         plt.savefig('%s/%s.png' % (args.dir, category))
         plt.show()
