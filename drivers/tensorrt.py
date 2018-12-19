@@ -39,14 +39,13 @@ class TensorRTDriver(driver.Driver):
         self.outputs = []
         for output in sample_outputs:
             self.outputs.append(cupy.zeros_like(output))
+        self.bindings = [a.data.ptr for a in self.inputs]
+        self.bindings += [a.data.ptr for a in self.outputs]
         self.run_task()
         return utils.to_cpu(self.outputs)
 
     def run_task(self):
-        bindings = [a.data.ptr for a in self.inputs]
-        bindings += [a.data.ptr for a in self.outputs]
-        result = self.context.execute(self.batch_size, bindings)
-        assert result
+        self.context.execute(self.batch_size, self.bindings)
 
     def need_onnx(self):
         return True
