@@ -36,7 +36,7 @@ def main():
                 by_category[category] = []
             by_category[category].append(info)
 
-    for category, infos in by_category.items():
+    for category, infos in sorted(by_category.items()):
         for driver in drivers:
             x = []
             y = []
@@ -47,6 +47,7 @@ def main():
                 y.append(info[args.y])
             plt.scatter(x, y, label=driver)
         plt.legend(loc='upper left')
+        plt.title(category)
         plt.show()
 
 
