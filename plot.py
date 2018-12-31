@@ -38,6 +38,15 @@ def main():
 
     for category, infos in sorted(by_category.items()):
         for driver in drivers:
+            elapsed = 0.0
+            for info in infos:
+                if info['driver'] != driver:
+                    continue
+                elapsed += info['elapsed']
+            print('%s %s %.3f msec' % (category, driver, elapsed * 10000))
+
+    for category, infos in sorted(by_category.items()):
+        for driver in drivers:
             x = []
             y = []
             for info in infos:
